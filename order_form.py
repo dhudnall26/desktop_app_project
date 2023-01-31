@@ -31,7 +31,7 @@ class OrderForm:
         self.display_graphics = ""
         self.po_number = ""
         
-        self.configurations = json.loads(open('configuration.json', 'r').read())
+        self.configurations = json.loads(open('vault/configuration.json', 'r').read())
      
 
     def count_files(self):
@@ -98,6 +98,8 @@ class OrderForm:
             writer.write(fp)
         try:
             dpg.delete_item("Order Inputs")
+            dpg.delete_item("Order Form")
+            self.create_window()
         finally:
             for x in range(len(self.images)):
                 dpg.delete_item("Order Image " + str(self.current_file) + str(x))
@@ -135,82 +137,29 @@ class OrderForm:
             self.parent_sheet_quantity = "Please enter sheet sizes and press sent quantity and save again."
         
     def machine_callback(self, sender, data):
-        if data == "Other":
-            with dpg.window(tag="Other Machine"):
-                dpg.add_input_text(label="Machine", width=500, height=500, callback=self.other_machine_callback)
-        else:
-            self.machine = data
-                    
-    def other_machine_callback(self, sender, data):
         self.machine = data
-        
+                         
     def paper_callback(self, sender, data):
-        if data == "Other":
-            with dpg.window(tag="Other Paper"):
-                dpg.add_input_text(label="Paper", width=500, height=500, callback=self.other_paper_callback)
-        else:
-            self.paper = data
-                    
-    def other_paper_callback(self, sender, data):
         self.paper = data
-        
+                    
     def parent_sheet_size_callback(self, sender, data):
-        if data == "Other":
-            with dpg.window(tag="Other Parent Sheet Size"):
-                dpg.add_input_text(label="Parent Sheet Size", width=500, height=500, callback=self.other_parent_sheet_size_callback)
-        else:
-            self.parent_sheet_size = data
-                    
-    def other_parent_sheet_size_callback(self, sender, data):
         self.parent_sheet_size = data
-                 
+                             
     def press_sheet_size_callback(self, sender, data):
-        if data == "Other":
-            with dpg.window(tag="Other Press Sheet Size"):
-                dpg.add_input_text(label="Press Sheet Size", width=500, height=500, callback=self.other_press_sheet_size_callback)
-        else:
-            self.press_sheet_size = data
-                    
-    def other_press_sheet_size_callback(self, sender, data):
         self.press_sheet_size = data
-            
+                         
     def press_sheet_quantity_callback(self, sender, data):
-        if data == "Other":
-            with dpg.window(tag="Other Press Sheet Quantity"):
-                dpg.add_input_text(label="Press Sheet Quantity", width=500, height=500, callback=self.other_press_sheet_quantity_callback)
-        else:
-            self.press_sheet_quantity = data
-                    
-    def other_press_sheet_quantity_callback(self, sender, data):
         self.press_sheet_quantity = data
-            
+                        
     def imposition_callback(self, sender, data):
-        if data == "Other":
-            with dpg.window(tag="Other Imposition"):
-                dpg.add_input_text(label="Imposition", width=500, height=500, callback=self.other_imposition_callback)
-        else:
-            self.imposition = data
-    
-    def other_imposition_callback(self, sender, data):
         self.imposition = data
-        
+     
     def press_callback(self, sender, data):
-        if data == "Other":
-            with dpg.window(tag="Other Press"):
-                dpg.add_input_text(label="Press", width=500, height=500, callback=self.other_press_callback)
-        else:
-            self.press = data
-            
-    def other_press_callback(self, sender, data):
         self.press = data
-        
+            
     def bindery_callback(self, sender, data, user_data):
         if data == True:
-            if user_data == "Other":
-                with dpg.window(tag="Other Bindery"):
-                    dpg.add_input_text(label="Bindery", width=500, height=500, callback=self.other_bindery_callback, user_data=user_data)
-            else:
-                self.bindery = self.bindery + user_data + ", "
+            self.bindery = self.bindery + user_data + ", "
         elif data == False:
             self.bindery.replace((user_data + ", "), "")
             
@@ -218,25 +167,11 @@ class OrderForm:
         self.bindery_other = data
         
     def mail_department_callback(self, sender, data):
-        if data == "Other":
-            with dpg.window(tag="Other Mail Department"):
-                dpg.add_input_text(label="Mail Department", width=500, height=500, callback=self.other_mail_department_callback)
-        else:
-            self.mail_department = data
-            
-    def other_mail_department_callback(self, sender, data):
         self.mail_department = data
-        
+             
     def display_graphics_callback(self, sender, data):
-        if data == "Other":
-            with dpg.window(tag="Other Display Graphics"):
-                dpg.add_input_text(label="Display Graphics", width=500, height=500, callback=self.other_display_graphics_callback)
-        else:
-            self.display_graphics = data
-            
-    def other_display_graphics_callback(self, sender, data):
         self.display_graphics = data
-            
+                 
     def run_gui(self):
         self.machine = ""
         self.paper = ""
@@ -255,6 +190,7 @@ class OrderForm:
         dpg.create_context()
         dpg.create_viewport()
         dpg.setup_dearpygui()
+        dpg.toggle_viewport_fullscreen()
         
         if self.file_count > 0:
             self.current_file = os.listdir(self.orders_path)[0]
@@ -263,23 +199,38 @@ class OrderForm:
             exit()
         
         self.image_convert()
+        
+        self.create_window()
 
+        dpg.show_viewport()
+        dpg.start_dearpygui()
+        dpg.destroy_context()
+        
+    def create_window(self):
         with dpg.window(tag="Order Form"):
             machine = dpg.add_group(horizontal=True)
             dpg.add_text("Machine:", parent=machine)
             dpg.add_combo(items=(self.configurations["Machine"]), callback=self.machine_callback, parent=machine, width=200)
+            dpg.add_text("Other:", parent=machine)
+            dpg.add_input_text(callback=self.machine_callback, parent=machine, width=200)
             
             paper = dpg.add_group(horizontal=True)
             dpg.add_text("Paper:", parent=paper)
             dpg.add_combo(items=(self.configurations["Paper"]), callback=self.paper_callback, parent=paper, width=200)
+            dpg.add_text("Other:", parent=paper)
+            dpg.add_input_text(callback=self.paper_callback, parent=paper, width=200)
             
             parent_sheet_size = dpg.add_group(horizontal=True)
             dpg.add_text("Parent Sheet Size:", parent=parent_sheet_size)
             dpg.add_combo(items=(self.configurations["Parent Sheet Size"]), callback=self.parent_sheet_size_callback, parent=parent_sheet_size, width=200)
-
+            dpg.add_text("Other:", parent=parent_sheet_size)
+            dpg.add_input_text(callback=self.parent_sheet_size_callback, parent=parent_sheet_size, width=200)
+            
             press_sheet_size = dpg.add_group(horizontal=True)
             dpg.add_text("Press Sheet Size:", parent=press_sheet_size)
             dpg.add_combo(items=(self.configurations["Press Sheet Size"]), callback=self.press_sheet_size_callback, parent=press_sheet_size, width=200)
+            dpg.add_text("Other:", parent=press_sheet_size)
+            dpg.add_input_text(callback=self.press_sheet_size_callback, parent=press_sheet_size, width=200)
             
             press_sheet_quantity = dpg.add_group(horizontal=True)
             dpg.add_text("Press Sheet Quantity:", parent=press_sheet_quantity)
@@ -288,23 +239,33 @@ class OrderForm:
             imposition = dpg.add_group(horizontal=True)
             dpg.add_text("Imposition:", parent=imposition)
             dpg.add_combo(items=(self.configurations["Imposition"]), callback=self.imposition_callback, parent=imposition, width=200)
+            dpg.add_text("Other:", parent=imposition)
+            dpg.add_input_text(callback=self.imposition_callback, parent=imposition, width=200)
             
             press = dpg.add_group(horizontal=True)
             dpg.add_text("Press:", parent=press)
             dpg.add_combo(items=(self.configurations["Press"]), callback=self.press_callback, parent=press, width=200)
+            dpg.add_text("Other:", parent=press)
+            dpg.add_input_text(callback=self.press_callback, parent=press, width=200)
             
             mail_department = dpg.add_group(horizontal=True)
             dpg.add_text("Mail Department:", parent=mail_department)
             dpg.add_combo(items=(self.configurations["Mail Department"]), callback=self.mail_department_callback, parent=mail_department, width=200)
+            dpg.add_text("Other:", parent=mail_department)
+            dpg.add_input_text(callback=self.mail_department_callback, parent=mail_department, width=200)
             
             display_graphics = dpg.add_group(horizontal=True)
             dpg.add_text("Display Graphics:", parent=display_graphics)
             dpg.add_combo(items=(self.configurations["Display Graphics"]), callback=self.display_graphics_callback, parent=display_graphics, width=200)
+            dpg.add_text("Other:", parent=display_graphics)
+            dpg.add_input_text(callback=self.display_graphics_callback, parent=display_graphics, width=200)
             
             bindery = dpg.add_group(horizontal=True)
             dpg.add_text("Bindery:", parent=bindery)
             for item in self.configurations["Bindery"]:
                 dpg.add_checkbox(label=item, callback=self.bindery_callback, user_data=item, parent=bindery)
+            dpg.add_text("Other:", parent=bindery)
+            dpg.add_input_text(callback=self.other_bindery_callback, parent=bindery, width=200)
             
             buttons = dpg.add_group(horizontal=True)
             dpg.add_button(label="Save", callback=self.save_callback, parent=buttons)
@@ -316,7 +277,4 @@ class OrderForm:
                 x+=1
             
         dpg.set_primary_window("Order Form", True)
-        dpg.show_viewport()
-        dpg.start_dearpygui()
-        dpg.destroy_context()
         
