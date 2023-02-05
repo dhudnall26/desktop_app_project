@@ -40,20 +40,26 @@ class OrderForm:
         dpg.setup_dearpygui()
         #dpg.toggle_viewport_fullscreen()
         
-        if self.file_count > 0:
-            self.current_file = os.listdir(self.orders_path)[0]
+        if self.file_count == 0:
+            self.no_orders_window()
         else:
-            print("No orders left to process")
-            exit()
-        
-        self.image_convert()
-        
-        self.create_window()
+            self.current_file = os.listdir(self.orders_path)[0]
+            self.image_convert()
+            
+            self.create_window()
 
-        dpg.show_viewport()
-        dpg.start_dearpygui()
-        dpg.destroy_context()
+            dpg.show_viewport()
+            dpg.start_dearpygui()
+            dpg.destroy_context()
         
+    def no_orders_window(self):
+        with dpg.window(tag="No Orders"):
+            dpg.add_text("There are no order forms in the Orders_to_Process folder. Please add at least one PDF and try again.", parent="No Orders")
+            dpg.add_button(label="Exit", callback=self.exit_callback, parent="No Orders")
+            dpg.set_primary_window("No Orders", True)
+            dpg.show_viewport()
+            dpg.start_dearpygui()
+            dpg.destroy_context()
     def image_convert(self):
         self.images = convert_from_path((self.orders_path + self.current_file), fmt='png')
         x = 0
@@ -151,7 +157,7 @@ class OrderForm:
                 elif ext == ".png":
                     os.remove(self.orders_path + path)
         except:
-            print("No orders to process.")
+            self.no_orders_window()
         
     def exit_callback(self):
         dpg.stop_dearpygui()
@@ -187,7 +193,7 @@ class OrderForm:
 
         annotation = AnnotationBuilder.free_text(
             string,
-            rect=(50, 396, 306, 792),
+            rect=(50, 396, 612, 792),
             font="Arial",
             bold=True,
             italic=True,
@@ -220,7 +226,7 @@ class OrderForm:
                     with dpg.drawlist(width=1000, height=1000, parent="Order Form", tag=("Order Window " + str(self.current_file) + str(x))):
                         dpg.draw_image((str(self.current_file) + str(x) + ".png"), (0, 0), (1000, 1000), uv_min=(0, 0), uv_max=(1, 1), tag=("Order Image " + str(self.current_file) + str(x)))
                     x+=1
-                self.clear_parameters
+                self.clear_parameters()
             else:
                 dpg.add_text("No orders left to process", parent="Order Form", pos=[400,500])
                 
@@ -233,6 +239,7 @@ class OrderForm:
         self.imposition = ""
         self.press = ""
         self.bindery = ""
+        self.bindery_other = ""
         self.mail_department = ""
         self.display_graphics = ""
         
@@ -285,3 +292,5 @@ class OrderForm:
     def display_graphics_callback(self, sender, data):
         self.display_graphics = data
         
+a = OrderForm()
+a.run_gui()
