@@ -60,8 +60,10 @@ class OrderForm:
             dpg.show_viewport()
             dpg.start_dearpygui()
             dpg.destroy_context()
+            
     def image_convert(self):
-        self.images = convert_from_path((self.orders_path + self.current_file), fmt='png')
+        self.images = convert_from_path((self.orders_path + self.current_file), fmt='png') #mac version
+        #self.images = convert_from_path((self.orders_path + self.current_file), fmt='png', poppler_path=r"C:\Program Files\poppler-23.01.0\Library\bin") #windows version
         x = 0
         for image in self.images:
             image.save(self.orders_path + str(x) + ".png")
