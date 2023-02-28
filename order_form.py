@@ -1,10 +1,20 @@
 import dearpygui.dearpygui as dpg
-from pdf2image import convert_from_path
+import json
 import os
 import PyPDF2
 from PyPDF2 import PdfReader, PdfWriter
 from PyPDF2.generic import AnnotationBuilder
-import json
+from pdf2image import convert_from_path
+import requests
+import shutil
+import sys
+import webbrowser
+import zipfile
+
+__name__ = 'PDF Annotation App'
+__version__ = '1.0'
+__author__ = 'Darby Hudnall'
+__email__ = 'DarbyHudnall95@gmail.com'
 
 class OrderForm:
 
@@ -17,11 +27,16 @@ class OrderForm:
         self.images = []
         self.page_count = 0
         
-        self.paper = ""
-        self.parent_sheet_size = ""
-        self.parent_sheet_quantity = ""
-        self.press_sheet_size = ""
-        self.press_sheet_quantity = ""
+        self.cover_paper = ""
+        self.cover_parent_sheet_size = ""
+        self.cover_parent_sheet_quantity = ""
+        self.cover_press_sheet_size = ""
+        self.cover_press_sheet_quantity = ""
+        self.text_paper = ""
+        self.text_parent_sheet_size = ""
+        self.text_parent_sheet_quantity = ""
+        self.text_press_sheet_size = ""
+        self.text_press_sheet_quantity = ""
         self.imposition = ""
         self.press = ""
         self.bindery = ""
@@ -39,6 +54,8 @@ class OrderForm:
         dpg.create_viewport()
         dpg.setup_dearpygui()
         #dpg.toggle_viewport_fullscreen()
+        
+        self.check_updates()
         
         if self.file_count == 0:
             self.no_orders_window()
@@ -61,6 +78,17 @@ class OrderForm:
             dpg.start_dearpygui()
             dpg.destroy_context()
             
+    def upgrade_needed_window(self, message):
+        with dpg.window(tag="Upgrade Needed"):
+            dpg.add_text(message, parent="Upgrade Needed")
+            dpg.add_text(os.path.dirname(os.path.abspath(sys.argv[0])))
+            dpg.add_button(label="Complete Upgrade", callback=self.upgrade_callback, parent="Upgrade Needed")
+            dpg.add_button(label="Exit", callback=self.exit_callback, parent="Upgrade Needed")
+            dpg.set_primary_window("Upgrade Needed", True)
+            dpg.show_viewport()
+            dpg.start_dearpygui()
+            dpg.destroy_context()
+           
     def image_convert(self):
         self.images = convert_from_path((self.orders_path + self.current_file), fmt='png') #mac version
         #self.images = convert_from_path((self.orders_path + self.current_file), fmt='png', poppler_path=r"C:\Program Files\poppler-23.01.0\Library\bin") #windows version
@@ -84,29 +112,68 @@ class OrderForm:
         self.po_number = result.split()[0]
         self.page_count = len(pdf_reader.pages)
         
+    def check_updates(self):
+        response = requests.get(
+            'https://raw.githubusercontent.com/dhudnall26/desktop_app_project/master/version.txt')
+        data = response.text
+
+        if float(data) > float(__version__):
+            message = "Need to upgrade " + __name__ + " Version " + __version__ + " to Version " + data
+            self.upgrade_needed_window(message)
+
     def create_window(self):
         with dpg.window(tag="Order Form"):
-            paper = dpg.add_group(horizontal=True)
-            dpg.add_text("Paper:", parent=paper)
-            dpg.add_combo(items=(self.configurations["Paper"]), callback=self.paper_callback, parent=paper, width=200)
-            dpg.add_text("Other:", parent=paper)
-            dpg.add_input_text(callback=self.paper_callback, parent=paper, width=200)
+            cover_paper = dpg.add_group(horizontal=True)
+            dpg.add_text("Paper Cover:", parent=cover_paper)
+            dpg.add_combo(items=(self.configurations["Paper Cover"]), callback=self.cover_paper_callback, parent=cover_paper, width=200)
+            dpg.add_text("Other:", parent=cover_paper)
+            dpg.add_input_text(callback=self.cover_paper_callback, parent=cover_paper, width=200)
             
-            parent_sheet_size = dpg.add_group(horizontal=True)
-            dpg.add_text("Parent Sheet Size:", parent=parent_sheet_size)
-            dpg.add_combo(items=(self.configurations["Parent Sheet Size"]), callback=self.parent_sheet_size_callback, parent=parent_sheet_size, width=200)
-            dpg.add_text("Other:", parent=parent_sheet_size)
-            dpg.add_input_text(callback=self.parent_sheet_size_callback, parent=parent_sheet_size, width=200)
+            cover_parent_sheet_size = dpg.add_group(horizontal=True)
+            dpg.add_text("Cover Parent Sheet Size:", parent=cover_parent_sheet_size)
+            dpg.add_combo(items=(self.configurations["Cover Parent Sheet Size"]), callback=self.cover_parent_sheet_size_callback, parent=cover_parent_sheet_size, width=200)
+            dpg.add_text("Other:", parent=cover_parent_sheet_size)
+            dpg.add_input_text(callback=self.cover_parent_sheet_size_callback, parent=cover_parent_sheet_size, width=200)
             
-            press_sheet_size = dpg.add_group(horizontal=True)
-            dpg.add_text("Press Sheet Size:", parent=press_sheet_size)
-            dpg.add_combo(items=(self.configurations["Press Sheet Size"]), callback=self.press_sheet_size_callback, parent=press_sheet_size, width=200)
-            dpg.add_text("Other:", parent=press_sheet_size)
-            dpg.add_input_text(callback=self.press_sheet_size_callback, parent=press_sheet_size, width=200)
+            cover_parent_sheet_quantity = dpg.add_group(horizontal=True)
+            dpg.add_text("Cover Parent Sheet Quantity:", parent=cover_parent_sheet_quantity)
+            dpg.add_input_text(callback=self.cover_parent_sheet_quantity_callback, parent=cover_parent_sheet_quantity, width=200)
+
+            cover_press_sheet_size = dpg.add_group(horizontal=True)
+            dpg.add_text("Cover Press Sheet Size:", parent=cover_press_sheet_size)
+            dpg.add_combo(items=(self.configurations["Cover Press Sheet Size"]), callback=self.cover_press_sheet_size_callback, parent=cover_press_sheet_size, width=200)
+            dpg.add_text("Other:", parent=cover_press_sheet_size)
+            dpg.add_input_text(callback=self.cover_press_sheet_size_callback, parent=cover_press_sheet_size, width=200)
             
-            press_sheet_quantity = dpg.add_group(horizontal=True)
-            dpg.add_text("Press Sheet Quantity:", parent=press_sheet_quantity)
-            dpg.add_input_text(callback=self.press_sheet_quantity_callback, parent=press_sheet_quantity, width=200)
+            cover_press_sheet_quantity = dpg.add_group(horizontal=True)
+            dpg.add_text("Cover Press Sheet Quantity:", parent=cover_press_sheet_quantity)
+            dpg.add_input_text(callback=self.cover_press_sheet_quantity_callback, parent=cover_press_sheet_quantity, width=200)
+
+            text_paper = dpg.add_group(horizontal=True)
+            dpg.add_text("Paper Text:", parent=text_paper)
+            dpg.add_combo(items=(self.configurations["Paper Text"]), callback=self.text_paper_callback, parent=text_paper, width=200)
+            dpg.add_text("Other:", parent=text_paper)
+            dpg.add_input_text(callback=self.text_paper_callback, parent=text_paper, width=200)
+            
+            text_parent_sheet_size = dpg.add_group(horizontal=True)
+            dpg.add_text("Text Parent Sheet Size:", parent=text_parent_sheet_size)
+            dpg.add_combo(items=(self.configurations["Text Parent Sheet Size"]), callback=self.text_parent_sheet_size_callback, parent=text_parent_sheet_size, width=200)
+            dpg.add_text("Other:", parent=text_parent_sheet_size)
+            dpg.add_input_text(callback=self.text_parent_sheet_size_callback, parent=text_parent_sheet_size, width=200)
+            
+            text_parent_sheet_quantity = dpg.add_group(horizontal=True)
+            dpg.add_text("Text Parent Sheet Quantity:", parent=text_parent_sheet_quantity)
+            dpg.add_input_text(callback=self.text_parent_sheet_quantity_callback, parent=text_parent_sheet_quantity, width=200)
+
+            text_press_sheet_size = dpg.add_group(horizontal=True)
+            dpg.add_text("Text Press Sheet Size:", parent=text_press_sheet_size)
+            dpg.add_combo(items=(self.configurations["Text Press Sheet Size"]), callback=self.text_press_sheet_size_callback, parent=text_press_sheet_size, width=200)
+            dpg.add_text("Other:", parent=text_press_sheet_size)
+            dpg.add_input_text(callback=self.text_press_sheet_size_callback, parent=text_press_sheet_size, width=200)
+            
+            text_press_sheet_quantity = dpg.add_group(horizontal=True)
+            dpg.add_text("Text Press Sheet Quantity:", parent=text_press_sheet_quantity)
+            dpg.add_input_text(callback=self.text_press_sheet_quantity_callback, parent=text_press_sheet_quantity, width=200)
 
             imposition = dpg.add_group(horizontal=True)
             dpg.add_text("Imposition:", parent=imposition)
@@ -164,6 +231,20 @@ class OrderForm:
     def exit_callback(self):
         dpg.stop_dearpygui()
         
+    def upgrade_callback(self):
+        #webbrowser.open_new_tab('https://github.com/dhudnall26/desktop_app_project/tree/master')
+        r = requests.get('https://raw.githubusercontent.com/dhudnall26/desktop_app_project/master/pdf_annotation_app.zip', stream=True)
+        with open('pdf_annotation_app.zip', 'wb') as f:
+            shutil.copyfileobj(r.raw, f)
+            
+        with zipfile.ZipFile('pdf_annotation_app.zip', 'r') as zip_ref:
+            #zip_ref.extractall(os.path.dirname(os.path.abspath(sys.argv[0])))
+            zip_ref.extractall('/Users/DarbyHudnall/order_form')
+            
+        with dpg.window(tag="Upgrade Complete"):
+            dpg.add_text("Update complete. Press exit then open the app again to use the latest version.", parent="Upgrade Complete")
+            dpg.add_button(label="Exit", callback=self.exit_callback, parent="Upgrade Complete")
+        
     def back_callback(self):
         dpg.delete_item("Order Inputs")
         dpg.delete_item("Order Form")
@@ -175,8 +256,8 @@ class OrderForm:
         self.bindery = self.bindery + self.bindery_other
         if self.bindery[-2] == ",":
             self.bindery = self.bindery[:-2]
-        self.set_parent_sheet_quantity()
-        string = "RUN PLAN - PURCHASE ORDER " + self.po_number + "\n\nPaper: " + self.paper + "\nParent Sheet Size: " + self.parent_sheet_size + "\nParent Sheet Quantity: " + self.parent_sheet_quantity + "\nPress Sheet Size: " + self.press_sheet_size + "\nPress Sheet Quantity: " + self.press_sheet_quantity + "\nImposition: " + self.imposition + "\nPress: " + self.press + "\nBindery: " + self.bindery + "\nMail Department: " + self.mail_department + "\nDisplay Graphics: " + self.display_graphics
+        #self.set_parent_sheet_quantity()
+        string = "RUN PLAN - PURCHASE ORDER " + self.po_number + "\n\nPaper Cover: " + self.cover_paper + "\nCover Parent Sheet Size: " + self.cover_parent_sheet_size + "\nCover Parent Sheet Quantity: " + self.cover_parent_sheet_quantity + "\nCover Press Sheet Size: " + self.cover_press_sheet_size + "\nCover Press Sheet Quantity: " + self.cover_press_sheet_quantity + "\nPaper Text: " + self.text_paper + "\nText Parent Sheet Size: " + self.text_parent_sheet_size + "\nText Parent Sheet Quantity: " + self.text_parent_sheet_quantity + "\nText Press Sheet Size: " + self.text_press_sheet_size + "\nText Press Sheet Quantity: " + self.text_press_sheet_quantity + "\nImposition: " + self.imposition + "\nPress: " + self.press + "\nBindery: " + self.bindery + "\nMail Department: " + self.mail_department + "\nDisplay Graphics: " + self.display_graphics
 
         with dpg.window(tag="Back Button"):
             dpg.add_text("Press Continue to annotate PDF with the values below. Press Back to revise.", parent="Back Button")
@@ -185,7 +266,7 @@ class OrderForm:
             dpg.add_button(label="Back", callback=self.back_callback, parent="Back Button")
             
     def save_callback(self):
-        string = "RUN PLAN - PURCHASE ORDER " + self.po_number + "\n\nPaper: " + self.paper + "\nParent Sheet Size: " + self.parent_sheet_size + "\nParent Sheet Quantity: " + self.parent_sheet_quantity + "\nPress Sheet Size: " + self.press_sheet_size + "\nPress Sheet Quantity: " + self.press_sheet_quantity + "\nImposition: " + self.imposition + "\nPress: " + self.press + "\nBindery: " + self.bindery + "\nMail Department: " + self.mail_department + "\nDisplay Graphics: " + self.display_graphics
+        string = "RUN PLAN - PURCHASE ORDER " + self.po_number + "\n\nPaper Cover: " + self.cover_paper + "\nCover Parent Sheet Size: " + self.cover_parent_sheet_size + "\nCover Parent Sheet Quantity: " + self.cover_parent_sheet_quantity + "\nCover Press Sheet Size: " + self.cover_press_sheet_size + "\nCover Press Sheet Quantity: " + self.cover_press_sheet_quantity + "\nPaper Text: " + self.text_paper + "\nText Parent Sheet Size: " + self.text_parent_sheet_size + "\nText Parent Sheet Quantity: " + self.text_parent_sheet_quantity + "\nText Press Sheet Size: " + self.text_press_sheet_size + "\nText Press Sheet Quantity: " + self.text_press_sheet_quantity + "\nImposition: " + self.imposition + "\nPress: " + self.press + "\nBindery: " + self.bindery + "\nMail Department: " + self.mail_department + "\nDisplay Graphics: " + self.display_graphics
 
         reader = PdfReader(str(self.orders_path + self.current_file))
         writer = PdfWriter()
@@ -233,11 +314,16 @@ class OrderForm:
                 dpg.add_text("No orders left to process", parent="Order Form", pos=[400,500])
                 
     def clear_parameters(self):
-        self.paper = ""
-        self.parent_sheet_size = ""
-        self.parent_sheet_quantity = ""
-        self.press_sheet_size = ""
-        self.press_sheet_quantity = ""
+        self.cover_paper = ""
+        self.cover_parent_sheet_size = ""
+        self.cover_parent_sheet_quantity = ""
+        self.cover_press_sheet_size = ""
+        self.cover_press_sheet_quantity = ""
+        self.text_paper = ""
+        self.text_parent_sheet_size = ""
+        self.text_parent_sheet_quantity = ""
+        self.text_press_sheet_size = ""
+        self.text_press_sheet_quantity = ""
         self.imposition = ""
         self.press = ""
         self.bindery = ""
@@ -245,34 +331,52 @@ class OrderForm:
         self.mail_department = ""
         self.display_graphics = ""
         
-    def set_parent_sheet_quantity(self):
-        try:
-            parent_height = float(self.parent_sheet_size.split('x')[1])
-            parent_width = float(self.parent_sheet_size.split('x')[0])
-            press_height = float(self.press_sheet_size.split('x')[1])
-            press_width = float(self.press_sheet_size.split('x')[0])
-            height = parent_height // press_height
-            width = parent_width // press_width
-            if height < width:
-                multiplier = height
-            else:
-                multiplier = width
-            self.parent_sheet_quantity = str(int(self.press_sheet_quantity) * int(multiplier))
-        except:
-            self.parent_sheet_quantity = "Please enter sheet sizes and press sent quantity and save again."
+    # def set_parent_sheet_quantity(self):
+    #     try:
+    #         parent_height = float(self.parent_sheet_size.split('x')[1])
+    #         parent_width = float(self.parent_sheet_size.split('x')[0])
+    #         press_height = float(self.press_sheet_size.split('x')[1])
+    #         press_width = float(self.press_sheet_size.split('x')[0])
+    #         height = parent_height // press_height
+    #         width = parent_width // press_width
+    #         if height < width:
+    #             multiplier = height
+    #         else:
+    #             multiplier = width
+    #         self.parent_sheet_quantity = str(int(self.press_sheet_quantity) * int(multiplier))
+    #     except:
+    #         self.parent_sheet_quantity = "Please enter sheet sizes and press sent quantity and save again."
                    
-    def paper_callback(self, sender, data):
-        self.paper = data
+    def cover_paper_callback(self, sender, data):
+        self.cover_paper = data
                     
-    def parent_sheet_size_callback(self, sender, data):
-        self.parent_sheet_size = data
-                             
-    def press_sheet_size_callback(self, sender, data):
-        self.press_sheet_size = data
+    def cover_parent_sheet_size_callback(self, sender, data):
+        self.cover_parent_sheet_size = data
+    
+    def cover_parent_sheet_quantity_callback(self, sender, data):
+        self.cover_press_sheet_quantity = data
+                          
+    def cover_press_sheet_size_callback(self, sender, data):
+        self.cover_press_sheet_size = data
                          
-    def press_sheet_quantity_callback(self, sender, data):
-        self.press_sheet_quantity = data
-                        
+    def cover_press_sheet_quantity_callback(self, sender, data):
+        self.cover_press_sheet_quantity = data
+    
+    def text_paper_callback(self, sender, data):
+        self.text_paper = data
+                    
+    def text_parent_sheet_size_callback(self, sender, data):
+        self.text_parent_sheet_size = data
+    
+    def text_parent_sheet_quantity_callback(self, sender, data):
+        self.text_press_sheet_quantity = data
+                          
+    def text_press_sheet_size_callback(self, sender, data):
+        self.text_press_sheet_size = data
+                         
+    def text_press_sheet_quantity_callback(self, sender, data):
+        self.text_press_sheet_quantity = data
+                      
     def imposition_callback(self, sender, data):
         self.imposition = data
      
