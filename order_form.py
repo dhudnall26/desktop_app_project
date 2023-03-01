@@ -12,7 +12,7 @@ import webbrowser
 import zipfile
 
 __name__ = 'PDF Annotation App'
-__version__ = '1.0'
+__version__ = '1.1'
 __author__ = 'Darby Hudnall'
 __email__ = 'DarbyHudnall95@gmail.com'
 
@@ -90,8 +90,8 @@ class OrderForm:
             dpg.destroy_context()
            
     def image_convert(self):
-        self.images = convert_from_path((self.orders_path + self.current_file), fmt='png') #mac version
-        #self.images = convert_from_path((self.orders_path + self.current_file), fmt='png', poppler_path=r"C:\Program Files\poppler-23.01.0\Library\bin") #windows version
+        #self.images = convert_from_path((self.orders_path + self.current_file), fmt='png') #mac version
+        self.images = convert_from_path((self.orders_path + self.current_file), fmt='png', poppler_path=r"C:\Program Files\poppler-23.01.0\Library\bin") #windows version
         x = 0
         for image in self.images:
             image.save(self.orders_path + str(x) + ".png")
@@ -238,8 +238,8 @@ class OrderForm:
             shutil.copyfileobj(r.raw, f)
             
         with zipfile.ZipFile('pdf_annotation_app.zip', 'r') as zip_ref:
-            #zip_ref.extractall(os.path.dirname(os.path.abspath(sys.argv[0])))
-            zip_ref.extractall('/Users/DarbyHudnall/order_form')
+            zip_ref.extractall(os.path.dirname(os.path.abspath(sys.argv[0])))
+            #zip_ref.extractall('/Users/DarbyHudnall/order_form')
             
         with dpg.window(tag="Upgrade Complete"):
             dpg.add_text("Update complete. Press exit then open the app again to use the latest version.", parent="Upgrade Complete")
